@@ -158,17 +158,19 @@
             document.getElementById('nav-bar').classList.add('view-only-hide');
         }
 
-        currentUnsubscribe = db.collection("student_results").orderBy("time", "desc").onSnapshot(snapshot => {
+        // تم تغيير اسم مجموعة البيانات إلى alkfaeat_results لتتناسب مع الاختبار الجديد
+        currentUnsubscribe = db.collection("alkfaeat_results").orderBy("time", "desc").onSnapshot(snapshot => {
             if(!isViewOnly) updateModelButtons(snapshot);
             
             let scores = [], rows = "";
             let levels = { exc: 0, vgood: 0, good: 0, acc: 0, weak: 0 };
-            let skillsSums = { tan: 0, ekm: 0, syq: 0, st: 0, mfr: 0, art: 0, ikh: 0 };
+            // الأقسام الستة الخاصة باختبار الجملة الاسمية
+            let skillsSums = { est: 0, ikm: 0, swh: 0, arb: 0, sah: 0, math: 0 };
             let studentCount = 0;
 
             snapshot.forEach(doc => {
                 const d = doc.data();
-                let actualModel = d.model_id || '15';
+                let actualModel = d.model_id || 'الجملة الاسمية';
                 if (modelId === 'all' || actualModel == modelId) {
                     const p = Math.round((d.score / d.total) * 100);
                     scores.push(p);
@@ -181,16 +183,16 @@
                     else levels.weak++;
 
                     let s = d.sections || { 
-                        tan: p, ekm: Math.max(0, p-5), syq: Math.min(100, p+3), 
-                        st: Math.max(0, p-10), mfr: p, art: Math.min(100, p+2), ikh: Math.max(0, p-4) 
+                        est: p, ikm: p, swh: p, 
+                        arb: p, sah: p, math: p 
                     };
                     
-                    Object.keys(skillsSums).forEach(k => skillsSums[k] += s[k]);
+                    Object.keys(skillsSums).forEach(k => skillsSums[k] += (s[k] || p));
 
                     rows += `<tr>
                         <td><strong>${d.name}</strong></td>
                         <td style="color:var(--accent); font-weight:bold">${d.score}/${d.total}</td>
-                        ${['tan','ekm','syq','st','mfr','art','ikh'].map(k => `<td>${s[k]}%<div class="prog-circle"><div class="prog-fill" style="width:${s[k]}%; background:${s[k]<60?'#ef4444':s[k]<80?'#f59e0b':'#10b981'}"></div></div></td>`).join('')}
+                        ${['est','ikm','swh','arb','sah','math'].map(k => `<td>${s[k] || p}%<div class="prog-circle"><div class="prog-fill" style="width:${s[k] || p}%; background:${(s[k] || p)<60?'#ef4444':(s[k] || p)<80?'#f59e0b':'#10b981'}"></div></div></td>`).join('')}
                         <td>${actualModel}</td>
                         <td class="no-print ${isViewOnly ? 'view-only-hide' : ''}">
                             <button style="color:blue;border:none;background:none;cursor:pointer;margin-left:10px" onclick="openReview('${doc.id}')">👁️ مراجعة</button>
@@ -202,14 +204,13 @@
 
             document.getElementById('data-rows').innerHTML = rows;
             updateSummary(scores, levels);
-            let avgSkills = ['tan','ekm','syq','st','mfr','art','ikh'].map(k => Math.round(skillsSums[k] / studentCount) || 0);
+            let avgSkills = ['est','ikm','swh','arb','sah','math'].map(k => Math.round(skillsSums[k] / studentCount) || 0);
             drawCharts(levels, avgSkills);
         });
     }
 
-    // وظيفة مراجعة الإجابات المضافة
     async function openReview(docId) {
-        const doc = await db.collection("student_results").doc(docId).get();
+        const doc = await db.collection("alkfaeat_results").doc(docId).get();
         const data = doc.data();
         document.getElementById('review-student-name').innerText = `مراجعة إجابات الطالب: ${data.name}`;
         const listContainer = document.getElementById('review-list');
@@ -259,7 +260,7 @@
         if(isViewOnly) return;
         const navBar = document.getElementById('nav-bar');
         const foundModels = new Set();
-        snapshot.forEach(doc => foundModels.add(doc.data().model_id?.toString() || "15"));
+        snapshot.forEach(doc => foundModels.add(doc.data().model_id?.toString() || "الجملة الاسمية"));
         let buttonsHtml = `<button class="model-btn ${selectedModel === 'all' ? 'active' : ''}" onclick="setMod('all')">🌍 عرض الكل</button>`;
         Array.from(foundModels).sort().forEach(mId => {
             buttonsHtml += `<button class="model-btn ${selectedModel === mId ? 'active' : ''}" onclick="setMod('${mId}')">${mId}</button>`;
@@ -270,7 +271,7 @@
     async function deleteEntireModel(modelId) {
         if(isViewOnly) return;
         if(confirm(`تنبيه: هل أنت متأكد من حذف جميع نتائج النموذج رقم (${modelId})؟`)) {
-            const snap = await db.collection("student_results").where("model_id", "==", modelId).get();
+            const snap = await db.collection("alkfaeat_results").where("model_id", "==", modelId).get();
             const batch = db.batch();
             snap.forEach(doc => batch.delete(doc.ref));
             await batch.commit();
@@ -304,7 +305,7 @@
 
     async function deleteDoc(id) { 
         if(isViewOnly) return;
-        if(confirm("حذف الطالب؟")) await db.collection("student_results").doc(id).delete(); 
+        if(confirm("حذف الطالب؟")) await db.collection("alkfaeat_results").doc(id).delete(); 
     }
 
     function drawCharts(lv, skills) {
@@ -313,11 +314,11 @@
         chartA = new Chart(ctx1, {
             type: 'bar',
             data: {
-                labels: ['استخرج', 'إكمال', 'خطأ وصح', 'أعرب', 'صحح', 'مثل', '],
+                labels: ['استخرج', 'إكمال', 'صح وخطأ', 'أعرب', 'صحح', 'مثل'],
                 datasets: [{ 
                     label: 'متوسط الأداء', 
                     data: skills, 
-                    backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'],
+                    backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'],
                     borderRadius: 8
                 }]
             },

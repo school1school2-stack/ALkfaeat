@@ -49,7 +49,6 @@
         .prog-circle { width: 45px; height: 6px; background: #eee; border-radius: 10px; overflow: hidden; margin-top: 4px; }
         .prog-fill { height: 100%; }
 
-        /* نافذة المراجعة و QR */
         #qr-modal, #review-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; }
         .modal-content { background: white; padding: 30px; border-radius: 25px; text-align: center; max-width: 500px; width: 95%; max-height: 85vh; overflow-y: auto; position: relative; }
         #review-modal .modal-content { max-width: 800px; text-align: right; }
@@ -158,13 +157,11 @@
             document.getElementById('nav-bar').classList.add('view-only-hide');
         }
 
-        // تم تغيير اسم مجموعة البيانات إلى alkfaeat_results لتتناسب مع الاختبار الجديد
         currentUnsubscribe = db.collection("alkfaeat_results").orderBy("time", "desc").onSnapshot(snapshot => {
             if(!isViewOnly) updateModelButtons(snapshot);
             
             let scores = [], rows = "";
             let levels = { exc: 0, vgood: 0, good: 0, acc: 0, weak: 0 };
-            // الأقسام الستة الخاصة باختبار الجملة الاسمية
             let skillsSums = { est: 0, ikm: 0, swh: 0, arb: 0, sah: 0, math: 0 };
             let studentCount = 0;
 
@@ -182,11 +179,7 @@
                     else if(p >= 60) levels.acc++;
                     else levels.weak++;
 
-                    let s = d.sections || { 
-                        est: p, ikm: p, swh: p, 
-                        arb: p, sah: p, math: p 
-                    };
-                    
+                    let s = d.sections || { est: p, ikm: p, swh: p, arb: p, sah: p, math: p };
                     Object.keys(skillsSums).forEach(k => skillsSums[k] += (s[k] || p));
 
                     rows += `<tr>
